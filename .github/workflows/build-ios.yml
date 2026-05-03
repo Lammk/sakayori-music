@@ -12,7 +12,7 @@ env:
 
 jobs:
   ios-build:
-    runs-on: macos-latest
+    runs-on: macos-14
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -36,13 +36,13 @@ jobs:
 
       - run: chmod +x ./gradlew
 
-      # Build Kotlin Native in a separate dedicated memory-bound process
+      # Build Kotlin Native using Kotlin 1.9.20+ memory configurations
       - name: Build iOS Framework
         run: >
           ./gradlew :composeApp:linkReleaseFrameworkIosArm64 
           --no-daemon 
-          -Pkotlin.compiler.execution.strategy=out-of-process
-          -Dkotlin.daemon.jvmargs="-Xmx6G -XX:MaxMetaspaceSize=1G -XX:+HeapDumpOnOutOfMemoryError"
+          -Pkotlin.compiler.execution.strategy=in-process
+          -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError"
           -Pkotlin.native.disableCompilerDaemon=true 
           -Pkotlin.native.cacheKind=none 
           -Pkotlin.mpp.enableCInteropCommonization=false
