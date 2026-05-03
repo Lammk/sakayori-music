@@ -8,9 +8,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Reduce parallelism and worker counts to save memory
-  GRADLE_OPTS: "-Dorg.gradle.parallel=false -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=1 -Dkotlin.incremental=false -Xmx6G -XX:MaxMetaspaceSize=1G"
-  _JAVA_OPTIONS: "-Xmx6G -XX:MaxMetaspaceSize=1G"
+  GRADLE_OPTS: "-Dorg.gradle.parallel=false -Dorg.gradle.daemon=false -Dorg.gradle.workers.max=1 -Dkotlin.incremental=false"
 
 jobs:
   ios-build:
@@ -38,12 +36,21 @@ jobs:
 
       - run: chmod +x ./gradlew
 
-      # Build with strict memory constraints for Kotlin Native
+      # Build Kotlin Native in a separate dedicated memory-bound process
       - name: Build iOS Framework
         run: >
           ./gradlew :composeApp:linkReleaseFrameworkIosArm64 
           --no-daemon 
+          -Pkotlin.compiler.execution.strategy=out-of-process
+          -Dkotlin.daemon.jvmargs="-Xmx6G -XX:MaxMetaspaceSize=1G -XX:+HeapDumpOnOutOfMemoryError"
           -Pkotlin.native.disableCompilerDaemon=true 
           -Pkotlin.native.cacheKind=none 
           -Pkotlin.mpp.enableCInteropCommonization=false
           --stacktrace
+
+      - name: Upload iOS Framework Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ComposeApp-iOS-Framework
+          path: composeApp/build/bin/iosArm64/releaseFramework/ComposeApp.framework
+          if-no-files-found: warn
