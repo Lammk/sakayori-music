@@ -12,7 +12,7 @@ env:
 
 jobs:
   ios-build:
-    # Switch back to x86_64 Mac runner since it has 14GB of RAM instead of 7GB
+    # Use standard x86 macos-13, completely bypass arm64 runners
     runs-on: macos-13
     timeout-minutes: 90
     steps:
@@ -37,12 +37,14 @@ jobs:
 
       - run: chmod +x ./gradlew
 
+      # Out of process compiling completely bypasses the Gradle Daemon Heap restrictions
+      # meaning Kotlin Native gets access to all 14GB of the macOS-13 instance
       - name: Build iOS Framework
         run: >
           ./gradlew :composeApp:linkReleaseFrameworkIosArm64 
           --no-daemon 
-          -Dorg.gradle.jvmargs="-Xmx10g -XX:MaxMetaspaceSize=2g -XX:+HeapDumpOnOutOfMemoryError"
-          -Pkotlin.compiler.execution.strategy=in-process
+          -Pkotlin.compiler.execution.strategy=out-of-process
+          -Dkotlin.daemon.jvmargs="-Xmx10g -XX:MaxMetaspaceSize=1g"
           -Pkotlin.native.disableCompilerDaemon=true 
           -Pkotlin.native.cacheKind=none 
           -Pkotlin.mpp.enableCInteropCommonization=false
