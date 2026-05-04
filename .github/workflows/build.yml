@@ -266,7 +266,7 @@ jobs:
           if-no-files-found: error
 
   macos:
-    runs-on: macos-13
+    runs-on: macos-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -304,7 +304,7 @@ jobs:
           if-no-files-found: error
 
   ios-ipa:
-    runs-on: macos-13
+    runs-on: macos-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -345,7 +345,7 @@ jobs:
           # K/N runs in-process inside the Gradle daemon. macos-13 arm64 runners
           # have ~7 GB RAM. Devirtualization analysis OOMs with the default heap,
           # so bump the daemon to 5 GB and override workflow-level GRADLE_OPTS.
-          GRADLE_OPTS: "-Xmx10g -XX:MaxMetaspaceSize=2g -Dorg.gradle.parallel=false -Dorg.gradle.configureondemand=true -Dkotlin.incremental=false"
+          GRADLE_OPTS: "-Xmx5g -XX:MaxMetaspaceSize=1g -Dorg.gradle.parallel=false -Dorg.gradle.configureondemand=true -Dkotlin.incremental=false"
         run: |
           set -o pipefail
           ./gradlew :composeApp:linkReleaseFrameworkIosArm64 \
