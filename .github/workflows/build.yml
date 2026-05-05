@@ -57,14 +57,14 @@ jobs:
           mkdir -p "$APPDIR/usr"
           cp -r composeApp/build/compose/binaries/main/app/SakayoriMusic/. "$APPDIR/usr/"
 
-          cat > "$APPDIR/AppRun" <<'EOF'
+          cat > "$APPDIR/AppRun" <<'INNER_EOF'
           #!/bin/sh
           HERE="$(dirname "$(readlink -f "$0")")"
           exec "$HERE/usr/bin/SakayoriMusic" "$@"
-          EOF
+          INNER_EOF
           chmod +x "$APPDIR/AppRun"
 
-          cat > "$APPDIR/sakayori-music.desktop" <<'EOF'
+          cat > "$APPDIR/sakayori-music.desktop" <<'INNER_EOF'
           [Desktop Entry]
           Type=Application
           Name=SakayoriMusic
@@ -73,7 +73,7 @@ jobs:
           Icon=sakayori-music
           Categories=AudioVideo;Audio;Player;
           Terminal=false
-          EOF
+          INNER_EOF
 
           cp composeApp/icon/circle_app_icon.png "$APPDIR/sakayori-music.png"
 
@@ -140,14 +140,14 @@ jobs:
           mkdir -p "$APPDIR/usr"
           cp -r composeApp/build/compose/binaries/main/app/SakayoriMusic/. "$APPDIR/usr/"
 
-          cat > "$APPDIR/AppRun" <<'EOF'
+          cat > "$APPDIR/AppRun" <<'INNER_EOF'
           #!/bin/sh
           HERE="$(dirname "$(readlink -f "$0")")"
           exec "$HERE/usr/bin/SakayoriMusic" "$@"
-          EOF
+          INNER_EOF
           chmod +x "$APPDIR/AppRun"
 
-          cat > "$APPDIR/sakayori-music.desktop" <<'EOF'
+          cat > "$APPDIR/sakayori-music.desktop" <<'INNER_EOF'
           [Desktop Entry]
           Type=Application
           Name=SakayoriMusic
@@ -156,7 +156,7 @@ jobs:
           Icon=sakayori-music
           Categories=AudioVideo;Audio;Player;
           Terminal=false
-          EOF
+          INNER_EOF
 
           cp composeApp/icon/circle_app_icon.png "$APPDIR/sakayori-music.png"
 
@@ -304,8 +304,8 @@ jobs:
           if-no-files-found: error
 
   ios-ipa:
-    runs-on: macos-latest
-    timeout-minutes: 60
+    runs-on: macos-13
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
 
@@ -333,30 +333,22 @@ jobs:
           restore-keys: |
             konan-${{ runner.os }}-
 
-      - name: Show runner memory
-        run: sysctl hw.memsize hw.ncpu && vm_stat | head -5
-
       - name: Stop pre-existing Gradle daemons
         run: ./gradlew --stop || true
 
       - name: Build Kotlin framework
         shell: bash
         env:
-          # K/N runs in-process inside the Gradle daemon. macos-13 arm64 runners
-          # have ~7 GB RAM. Devirtualization analysis OOMs with the default heap,
-          # so bump the daemon to 5 GB and override workflow-level GRADLE_OPTS.
-          GRADLE_OPTS: "-Xmx5g -XX:MaxMetaspaceSize=1g -Dorg.gradle.parallel=false -Dorg.gradle.configureondemand=true -Dkotlin.incremental=false"
+          GRADLE_OPTS: "-Dorg.gradle.parallel=false -Dorg.gradle.configureondemand=true -Dkotlin.incremental=false"
         run: |
           set -o pipefail
           ./gradlew :composeApp:linkReleaseFrameworkIosArm64 \
-            -Pkotlin.compiler.execution.strategy=in-process \
+            --no-daemon \
+            -Dkotlin.daemon.jvmargs="-Xmx12g -XX:MaxMetaspaceSize=1g" \
+            -Pkotlin.compiler.execution.strategy=out-of-process \
             -Pkotlin.native.ignoreIncorrectDependencies=true \
-            -Pkotlin.native.cacheKind.iosArm64=static \
-            -Dorg.gradle.parallel=false \
-            -Dorg.gradle.workers.max=1 \
-            -Dorg.gradle.configureondemand=true \
-            -Dorg.gradle.caching=true \
-            -Dkotlin.incremental=false \
+            -Pkotlin.native.cacheKind.iosArm64=none \
+            -Pkotlin.mpp.enableCInteropCommonization=false \
             --stacktrace --info 2>&1 | tee /tmp/kotlin-native-link.log
           EXIT=$?
           if [ $EXIT -ne 0 ]; then
@@ -400,13 +392,13 @@ jobs:
           mkdir -p build/Payload
           cp -R build/SakayoriMusic.xcarchive/Products/Applications/iosApp.app build/Payload/SakayoriMusic.app
           cd build
-          zip -qry SakayoriMusic-${VERSION:-2.1.6}-unsigned.ipa Payload
-          ls -la SakayoriMusic-${VERSION:-2.1.6}-unsigned.ipa
+          zip -qry SakayoriMusic-2.1.6-unsigned.ipa Payload
+          ls -la SakayoriMusic-2.1.6-unsigned.ipa
 
       - uses: actions/upload-artifact@v4
         with:
           name: SakayoriMusic-ios-ipa-unsigned
-          path: iosApp/build/SakayoriMusic-*-unsigned.ipa
+          path: iosApp/build/SakayoriMusic-2.1.6-unsigned.ipa
           if-no-files-found: error
 
       - name: Upload iOS debug logs on failure
