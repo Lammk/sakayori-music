@@ -12,7 +12,8 @@ env:
 
 jobs:
   ios-build:
-    runs-on: macos-latest
+    # Use standard x86 macos-13, completely bypass arm64 runners
+    runs-on: macos-13
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
@@ -42,8 +43,8 @@ jobs:
         run: >
           ./gradlew :composeApp:linkReleaseFrameworkIosArm64 
           --no-daemon 
-          -Pkotlin.compiler.execution.strategy=in-process
-          -Dorg.gradle.jvmargs="-Xmx5g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError"
+          -Pkotlin.compiler.execution.strategy=out-of-process
+          -Dkotlin.daemon.jvmargs="-Xmx12g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError"
           -Pkotlin.native.disableCompilerDaemon=true 
           -Pkotlin.native.cacheKind=none 
           -Pkotlin.mpp.enableCInteropCommonization=false
